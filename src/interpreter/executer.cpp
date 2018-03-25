@@ -29,9 +29,6 @@
 #include <QTimer>  // for wait
 #include <QDebug>
 
-#include <krandom.h>
-#include <KLocalizedString>
-
 
 // this function is used in executer and canvas:
 #define ROUND2INT(x) ( (x) >= 0 ? (int)( (x) + .5 ) : (int)( (x) - .5 ) )
@@ -87,7 +84,7 @@ void Executer::execute()
 		// gracefully as possible.
 		// See: https://bugs.kde.org/show_bug.cgi?id=300949
 		if (functionStack.isEmpty()) {
-			addError(i18n("Cannot return outside a function. "), *(currentNode->token()), 0);
+			addError(("Cannot return outside a function. "), *(currentNode->token()), 0);
 			finished = true;
 			return;
 		}
@@ -277,7 +274,7 @@ bool Executer::checkParameterQuantity(TreeNode* node, uint quantity, int errorCo
 
 	if (quantity == 0) {
 		if (nodeSize == 0) return true;  // thats easy!
-		addError(i18n("The %1 command accepts no parameters.", node->token()->look()), *node->token(), errorCode);
+		addError(("The %1 command accepts no parameters.", node->token()->look()), *node->token(), errorCode);
 		return false;
 	}
 	
@@ -287,9 +284,9 @@ bool Executer::checkParameterQuantity(TreeNode* node, uint quantity, int errorCo
 	
 	if (nodeSize != quantity) {
 		if (nodeSize < quantity) {
-			addError(i18np("The %2 command was called with %3 but needs 1 parameter.", "The %2 command was called with %3 but needs %1 parameters.", quantity, node->token()->look(), nodeSize), *node->token(), errorCode);
+			addError("The %2 command was called with %3 but needs 1 parameter.", *node->token(), errorCode);
 		} else {
-			addError(i18np("The %2 command was called with %3 but only accepts 1 parameter.", "The %2 command was called with %3 but only accepts %1 parameters.", quantity, node->token()->look(), nodeSize), *node->token(), errorCode);
+			addError("The %2 command was called with %3 but only accepts 1 parameter.", *node->token(), errorCode);
 		}
 		return false;
 	}
@@ -307,23 +304,23 @@ bool Executer::checkParameterType(TreeNode* node, int valueType, int errorCode)
 			switch (valueType) {
 				case Value::String:
 					if (quantity == 1)
-						addError(i18n("The %1 command only accepts a string as its parameter.", node->token()->look()), *node->token(), errorCode);
+						addError(("The %1 command only accepts a string as its parameter.", node->token()->look()), *node->token(), errorCode);
 					else
-						addError(i18n("The %1 command only accepts strings as its parameters.", node->token()->look()), *node->token(), errorCode);
+						addError(("The %1 command only accepts strings as its parameters.", node->token()->look()), *node->token(), errorCode);
 					break;
 				
 				case Value::Number:
 					if (quantity == 1)
-						addError(i18n("The %1 command only accepts a number as its parameter.", node->token()->look()), *node->token(), errorCode);
+						addError(("The %1 command only accepts a number as its parameter.", node->token()->look()), *node->token(), errorCode);
 					else
-						addError(i18n("The %1 command only accepts numbers as its parameters.", node->token()->look()), *node->token(), errorCode);
+						addError(("The %1 command only accepts numbers as its parameters.", node->token()->look()), *node->token(), errorCode);
 					break;
 				
 				case Value::Bool:
 					if (quantity == 1)
-						addError(i18n("The %1 command only accepts an answer as its parameter.", node->token()->look()), *node->token(), errorCode);
+						addError(("The %1 command only accepts an answer as its parameter.", node->token()->look()), *node->token(), errorCode);
 					else
-						addError(i18n("The %1 command only accepts answers as its parameters.", node->token()->look()), *node->token(), errorCode);
+						addError(("The %1 command only accepts answers as its parameters.", node->token()->look()), *node->token(), errorCode);
 					break;
 			}
 			
@@ -401,7 +398,7 @@ void Executer::executeVariable(TreeNode* node) {
 		node->setValue(globalVariableTable[node->token()->look()]);
 	} else if (aValueIsNeeded)
 	{
-		addError(i18n("The variable '%1' was used without first being assigned to a value", node->token()->look()), *node->token(), 0);
+		addError(("The variable '%1' was used without first being assigned to a value", node->token()->look()), *node->token(), 0);
 	}
 }
 void Executer::executeFunctionCall(TreeNode* node) {
@@ -420,7 +417,7 @@ void Executer::executeFunctionCall(TreeNode* node) {
 	}
 
 	if (!functionTable.contains(node->token()->look())) {
-		addError(i18n("An unknown function named '%1' was called", node->token()->look()), *node->token(), 0);
+		addError(("An unknown function named '%1' was called", node->token()->look()), *node->token(), 0);
 		return;
 	}
 	
@@ -435,11 +432,7 @@ void Executer::executeFunctionCall(TreeNode* node) {
 	// if the parameter numbers are not equal...
 	if (node->childCount() != learnNode->child(1)->childCount()) {
 		addError(
-			i18n("The function '%1' was called with %2, while it should be called with %3",
-				node->token()->look(),
-				i18ncp("The function '%1' was called with %2, while it should be called with %3", "1 parameter", "%1 parameters", node->childCount()),
-				i18ncp("The function '%1' was called with %2, while it should be called with %3", "1 parameter", "%1 parameters", learnNode->child(1)->childCount())
-			),
+			"The function '%1' was called with %2, while it should be called with %3",
 			*node->token(), 0);
 		return;
 	}
@@ -642,13 +635,13 @@ void Executer::executeAssert(TreeNode* node) {
 //	//qDebug() << "called";
 	if (!checkParameterQuantity(node, 1, 20000+Token::Wait*100+90)) return;
 	if (!checkParameterType(node, Value::Bool, 20000+Token::Wait*100+91) ) return;
-	if (!node->child(0)->value()->boolean()) addError(i18n("ASSERT failed"), *node->token(), 0);
+	if (!node->child(0)->value()->boolean()) addError(("ASSERT failed"), *node->token(), 0);
 }
 void Executer::executeAnd(TreeNode* node) {
 //	//qDebug() << "called";
 	//Niels: See 'Not'
 	if(node->childCount()!=2) {
-		addError(i18n("'And' needs two variables"), *node->token(), 0);
+		addError(("'And' needs two variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(node->child(0)->value()->boolean() && node->child(1)->value()->boolean());
@@ -657,7 +650,7 @@ void Executer::executeOr(TreeNode* node) {
 //	//qDebug() << "called";
 	//Niels: See 'Not'
 	if(node->childCount()!=2) {
-		addError(i18n("'Or' needs two variables"), *node->token(), 0);
+		addError(("'Or' needs two variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(node->child(0)->value()->boolean() || node->child(1)->value()->boolean());
@@ -667,7 +660,7 @@ void Executer::executeNot(TreeNode* node) {
 	// OLD-TODO: maybe add some error handling here...
 	//Niels: Ok, now we check if the node has children. Should we also check whether the child value is a boolean?
 	if(node->childCount()!=1) {
-		addError(i18n("I need something to do a not on"), *node->token(), 0);
+		addError(("I need something to do a not on"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(!node->child(0)->value()->boolean());
@@ -675,7 +668,7 @@ void Executer::executeNot(TreeNode* node) {
 void Executer::executeEquals(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) { 
-		addError(i18n("I cannot do a '==' without 2 variables"), *node->token(), 0);
+		addError(("I cannot do a '==' without 2 variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(*node->child(0)->value() == node->child(1)->value());
@@ -683,7 +676,7 @@ void Executer::executeEquals(TreeNode* node) {
 void Executer::executeNotEquals(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) { 
-		addError(i18n("I cannot do a '!=' without 2 variables"), *node->token(), 0);
+		addError(("I cannot do a '!=' without 2 variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(*node->child(0)->value() != node->child(1)->value());
@@ -691,7 +684,7 @@ void Executer::executeNotEquals(TreeNode* node) {
 void Executer::executeGreaterThan(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) { 
-		addError(i18n("I cannot do a '>' without 2 variables"), *node->token(), 0);
+		addError(("I cannot do a '>' without 2 variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(*node->child(0)->value() > node->child(1)->value());
@@ -699,7 +692,7 @@ void Executer::executeGreaterThan(TreeNode* node) {
 void Executer::executeLessThan(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) { 
-		addError(i18n("I cannot do a '<' without 2 variables"), *node->token(), 0);
+		addError(("I cannot do a '<' without 2 variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(*node->child(0)->value() < node->child(1)->value());
@@ -707,7 +700,7 @@ void Executer::executeLessThan(TreeNode* node) {
 void Executer::executeGreaterOrEquals(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) { 
-		addError(i18n("I cannot do a '>=' without 2 variables"), *node->token(), 0);
+		addError(("I cannot do a '>=' without 2 variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(*node->child(0)->value() >= node->child(1)->value());
@@ -715,7 +708,7 @@ void Executer::executeGreaterOrEquals(TreeNode* node) {
 void Executer::executeLessOrEquals(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) { 
-		addError(i18n("I cannot do a '<=' without 2 variables"), *node->token(), 0);
+		addError(("I cannot do a '<=' without 2 variables"), *node->token(), 0);
 		return;
 	}
 	node->value()->setBool(*node->child(0)->value() <= node->child(1)->value());
@@ -723,7 +716,7 @@ void Executer::executeLessOrEquals(TreeNode* node) {
 void Executer::executeAddition(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) {
-		addError(i18n("You need two numbers or string to do an addition"), *node->token(), 0);
+		addError(("You need two numbers or string to do an addition"), *node->token(), 0);
 		return;
 	}
 	if (node->child(0)->value()->type() == Value::Number && node->child(1)->value()->type() == Value::Number) {
@@ -735,56 +728,56 @@ void Executer::executeAddition(TreeNode* node) {
 void Executer::executeSubstracton(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) {
-		addError(i18n("You need two numbers to subtract"), *node->token(), 0);
+		addError(("You need two numbers to subtract"), *node->token(), 0);
 		return;
 	}
 	if (node->child(0)->value()->type() == Value::Number && node->child(1)->value()->type() == Value::Number) {
 		node->value()->setNumber(node->child(0)->value()->number() - node->child(1)->value()->number());
 	} else {
 		if (node->child(0)->value()->type() != Value::Number)
-			addError(i18n("You tried to subtract from a non-number, '%1'", node->child(0)->token()->look()), *node->token(), 0);
+			addError(("You tried to subtract from a non-number, '%1'", node->child(0)->token()->look()), *node->token(), 0);
 		if (node->child(1)->value()->type() != Value::Number)
-			addError(i18n("You tried to subtract a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
+			addError(("You tried to subtract a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
 	}
 }
 void Executer::executeMultiplication(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) {
-		addError(i18n("You need two numbers to multiplicate"), *node->token(), 0);
+		addError(("You need two numbers to multiplicate"), *node->token(), 0);
 		return;
 	}
 	if (node->child(0)->value()->type() == Value::Number && node->child(1)->value()->type() == Value::Number) {
 		node->value()->setNumber(node->child(0)->value()->number() * node->child(1)->value()->number());
 	} else {
 		if (node->child(0)->value()->type() != Value::Number)
-			addError(i18n("You tried to multiplicate a non-number, '%1'", node->child(0)->token()->look()), *node->token(), 0);
+			addError(("You tried to multiplicate a non-number, '%1'", node->child(0)->token()->look()), *node->token(), 0);
 		if (node->child(1)->value()->type() != Value::Number)
-			addError(i18n("You tried to multiplicate by a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
+			addError(("You tried to multiplicate by a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
 	}
 }
 void Executer::executeDivision(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) {
-		addError(i18n("You need two numbers to divide"), *node->token(), 0);
+		addError(("You need two numbers to divide"), *node->token(), 0);
 		return;
 	}
 	if (node->child(0)->value()->type() == Value::Number && node->child(1)->value()->type() == Value::Number) {
 		if(node->child(1)->value()->number()==0) {
-			addError(i18n("You tried to divide by zero"), *node->token(), 0);
+			addError(("You tried to divide by zero"), *node->token(), 0);
 			return;
 		}
 		node->value()->setNumber(node->child(0)->value()->number() / node->child(1)->value()->number());
 	} else {
 		if (node->child(0)->value()->type() != Value::Number)
-			addError(i18n("You tried to divide a non-number, '%1'", node->child(0)->token()->look()), *node->token(), 0);
+			addError(("You tried to divide a non-number, '%1'", node->child(0)->token()->look()), *node->token(), 0);
 		if (node->child(1)->value()->type() != Value::Number)
-			addError(i18n("You tried to divide by a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
+			addError(("You tried to divide by a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
 	}
 }
 void Executer::executePower(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) {
-		addError(i18n("You need two numbers to raise a power"), *node->token(), 0);
+		addError(("You need two numbers to raise a power"), *node->token(), 0);
 		return;
 	}
 	if (node->child(0)->value()->type() == Value::Number && node->child(1)->value()->type() == Value::Number) {
@@ -795,21 +788,21 @@ void Executer::executePower(TreeNode* node) {
 		int error = errno;
 		if(error==ERANGE) {
 			node->value()->setNumber(0);
-			addError(i18n("The result of an exponentiation was too large"), *node->token(), 0);
+			addError(("The result of an exponentiation was too large"), *node->token(), 0);
 		}else{
 			node->value()->setNumber(result);
 		}
 	} else {
 		if (node->child(0)->value()->type() != Value::Number)
-			addError(i18n("You tried to raise a non-number to a power, '%1'", node->child(0)->token()->look()), *node->token(), 0);
+			addError(("You tried to raise a non-number to a power, '%1'", node->child(0)->token()->look()), *node->token(), 0);
 		if (node->child(1)->value()->type() != Value::Number)
-			addError(i18n("You tried to raise the power of a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
+			addError(("You tried to raise the power of a non-number, '%1'", node->child(1)->token()->look()), *node->token(), 0);
 	}
 }
 void Executer::executeAssign(TreeNode* node) {
 //	//qDebug() << "called";
 	if(node->childCount()!=2) {
-	addError(i18n("You need one variable and a value or variable to do a '='"), *node->token(), 0);
+	addError(("You need one variable and a value or variable to do a '='"), *node->token(), 0);
 		return;
 	}
 	if (!functionStack.isEmpty() && !globalVariableTable.contains(node->child(0)->token()->look())) // &&functionStack.top().variableTable->contains(node->token()->look())) 
@@ -826,7 +819,7 @@ void Executer::executeAssign(TreeNode* node) {
 void Executer::executeLearn(TreeNode* node) {
 //	//qDebug() << "called";
 	if(functionTable.contains(node->child(0)->token()->look())) {
-		addError(i18n("The function '%1' is already defined.", node->child(0)->token()->look()), *node->token(), 0);
+		addError(("The function '%1' is already defined.", node->child(0)->token()->look()), *node->token(), 0);
 		return;
 	}
 	functionTable.insert(node->child(0)->token()->look(), node);
@@ -969,7 +962,8 @@ void Executer::executeRandom(TreeNode* node) {
 	if (!checkParameterType(node, Value::Number, 20000+Token::Random*100+91)) return;
 	double x = nodeX->value()->number();
 	double y = nodeY->value()->number();
-	double r = (double)(KRandom::random()) / RAND_MAX;
+
+	double r = (double)(qrand()) / RAND_MAX;
 	node->value()->setNumber(r * (y - x) + x);
 }
 void Executer::executeGetX(TreeNode* node) {
@@ -1056,7 +1050,7 @@ void Executer::executeSqrt(TreeNode* node) {
 	
 	double val = node->child(0)->value()->number();
 	if(val<0) {
-		addError(i18n("Can't do a sqrt of a negative number"), *node->child(0)->token(), 0);
+		addError(("Can't do a sqrt of a negative number"), *node->child(0)->token(), 0);
 		node->value()->setNumber(0);
 		return;
 	}

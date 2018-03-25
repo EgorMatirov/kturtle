@@ -22,95 +22,38 @@
 
 #include <QFile>
 #include <QDebug>
-#include <QApplication>
-#include <KAboutData>
-#include <KCrash>
-#include <KLocalizedString>
+#include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
-#include <Kdelibs4ConfigMigrator>
-
-#include "mainwindow.h"  // for gui mode
 
 #include "interpreter/interpreter.h"  // for non gui mode
 #include "interpreter/echoer.h"
 #include "interpreter/tokenizer.h"
 
 
-static const char description[] =
-	I18N_NOOP("KTurtle is an educational programming environment that aims to make learning how to program as easy as possible. To achieve this KTurtle makes all programming tools available from the user interface. The programming language used is TurtleScript which allows its commands to be translated.");
-
 static const char version[]   = "0.8.1 beta";
 static const char copyright[] = "(c) 2003-2009 Cies Breijs";
 static const char website[]   = "http://edu.kde.org/kturtle";
+const QString KTURTLE_MAGIC_1_0 = "kturtle-script-v1.0";
 
 
 int main(int argc, char* argv[])
 {
-	KLocalizedString::setApplicationDomain("kturtle");
-
-	QApplication app(argc, argv);
-	app.setAttribute(Qt::AA_UseHighDpiPixmaps, true);
-
-	KCrash::initialize();
-
-	/* for migration*/
-	QStringList configFiles;
-	configFiles << QLatin1String("kturtlerc");
-	Kdelibs4ConfigMigrator migrator(QLatin1String("kturtle"));
-	migrator.setConfigFiles(configFiles);
-	migrator.setUiFiles(QStringList() << QStringLiteral("kturtleui.rc"));
-	migrator.migrate();
-
-	KAboutData aboutData("kturtle", ki18n("KTurtle").toString(), ki18n(version).toString());
-	aboutData.setLicense(KAboutLicense::GPL);
-	aboutData.setHomepage(ki18n(website).toString());
-	aboutData.setShortDescription(ki18n(description).toString());
-	aboutData.setCopyrightStatement(ki18n(copyright).toString());
-
-	aboutData.addAuthor(ki18n("Cies Breijs").toString(), ki18n("Initiator and core developer").toString(), "cies@kde.nl");
-	aboutData.addAuthor(ki18n("Niels Slot").toString(), ki18n("Core developer").toString(), "nielsslot@gmail.com");
-	aboutData.addAuthor(ki18n("Mauricio Piacentini").toString(), ki18n("Core developer").toString(), "piacentini@kde.org");
+	QCoreApplication app(argc, argv);
 
 	QCommandLineParser parser;
-
-	KAboutData::setApplicationData(aboutData);
 	parser.addVersionOption();
 	parser.addHelpOption();
-	aboutData.setupCommandLine(&parser);
 
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("i") << QLatin1String("input"), i18n("File or URL to open (in the GUI mode)"), QLatin1String("URL or file")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("d") << QLatin1String("dbus"), i18n("Starts KTurtle in D-Bus mode (without a GUI), good for automated unit test scripts")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("t") << QLatin1String("test"), i18n("Starts KTurtle in testing mode (without a GUI), directly runs the specified local file"), QLatin1String("file")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("l") << QLatin1String("lang"), i18n("Specifies the localization language by a language code, defaults to \"en_US\" (only works in testing mode)"), QLatin1String("code")));
-// 	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("k") << QLatin1String("tokenize"), i18n("Only tokenizes the turtle code (only works in testing mode)")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("p") << QLatin1String("parse"), i18n("Translates turtle code to embeddable C++ example strings (for developers only)"), QLatin1String("file")));
+	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("i") << QLatin1String("input"), ("File or URL to open (in the GUI mode)"), QLatin1String("URL or file")));
+	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("d") << QLatin1String("dbus"), ("Starts KTurtle in D-Bus mode (without a GUI), good for automated unit test scripts")));
+	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("t") << QLatin1String("test"), ("Starts KTurtle in testing mode (without a GUI), directly runs the specified local file"), QLatin1String("file")));
+	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("l") << QLatin1String("lang"), ("Specifies the localization language by a language code, defaults to \"en_US\" (only works in testing mode)"), QLatin1String("code")));
+	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("p") << QLatin1String("parse"), ("Translates turtle code to embeddable C++ example strings (for developers only)"), QLatin1String("file")));
 
 	parser.process(app);
-	aboutData.processCommandLine(&parser);
 
-	if (!parser.isSet("test") && !parser.isSet("parse") && !parser.isSet("dbus")) {
-
-		///////////////// run in GUI mode /////////////////
-		if (app.isSessionRestored()) {
-			RESTORE(MainWindow);
-		} else {
-			MainWindow* mainWindow = new MainWindow();
-			mainWindow->show();
-			if (parser.isSet("input")) mainWindow->open(parser.value("input"));
-		}
-		  // free some memory
-		return app.exec();  // the mainwindow has WDestructiveClose flag; it will destroy itself.
-
-	} else if (parser.isSet("dbus")) {
-
-		///////////////// run in DBUS mode /////////////////
-		Translator::instance()->setLanguage();
-		new Interpreter(0, true);
-		
-		return app.exec();
-
-	} else if (parser.isSet("parse")) {
+	if (parser.isSet("parse")) {
 
 		///////////////// run in example PARSING mode /////////////////
 		QFile inputFile(parser.value("parse"));
@@ -181,35 +124,12 @@ int main(int argc, char* argv[])
 		QString localizedScript;
 		localizedScript = Translator::instance()->localizeScript(in.readAll());
 
-// /*		if (parser.isSet("tokenize")) {
-// 			std::cout << "Tokenizing...\n" << std::endl;
-// 			QString code = inputFile.readAll();
-// // 			for (int i = 0; i < code.length(); i++) //qDebug() << code.at(i);
-// 			Tokenizer tokenizer;
-// 			tokenizer.initialize(code);
-// 			Token* t;
-// 			while ((t = tokenizer.getToken())->type() != Token::EndOfInput) {
-// 				std::cout << "TOK> "
-// 				          << qPrintable(QString("\"%1\"").arg(t->look()).leftJustified(15))
-// 				          << qPrintable(QString("[%1]").arg(QString::number(t->type())).rightJustified(5))
-// 				          << qPrintable(QString(" @ (%1,%2)").arg(t->startRow()).arg(t->startCol()))
-// 				          << qPrintable(QString(" - (%1,%2)").arg(t->endRow()).arg(t->endCol()))
-// 				          << std::endl;
-// 			}
-// 			return 0;
-// 		}*/
-
-		  // free some memory
-
-		// init the interpreter
 		Interpreter* interpreter = new Interpreter(0, true);  // set testing to true
 		interpreter->initialize(localizedScript);
 
-		// install the echoer
 		(new Echoer())->connectAllSlots(interpreter->getExecuter());
 
-		// the actual execution (limited to a certain amount of iterations to break endless loops)
-		static const int MAX_ITERATION_STEPS = 20000;
+		static const int MAX_ITERATION_STEPS = 2000;
 		int i;
 		for (i = 0;
 		     interpreter->state() != Interpreter::Finished &&
@@ -219,6 +139,10 @@ int main(int argc, char* argv[])
 		     i++)
 			interpreter->interpret();
 
+        if(!interpreter->getErrorList()->isEmpty()) {
+            std::cerr << "ERR> " << interpreter->getErrorStrings().join(", ").toStdString();
+			return 1;
+        }
 		if (i == MAX_ITERATION_STEPS)
 			std::cout << "ERR> Iterated more than " << MAX_ITERATION_STEPS << " steps... Execution terminated." << std::endl;
 

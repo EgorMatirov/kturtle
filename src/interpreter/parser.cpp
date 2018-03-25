@@ -21,9 +21,6 @@
 
 #include <QDebug>
 
-#include <KLocalizedString>
-
-
 void Parser::initialize(Tokenizer* _tokenizer, ErrorList* _errorList)
 {
 	tokenizer    = _tokenizer;
@@ -44,7 +41,7 @@ void Parser::parse()
 // 	//qDebug() << "Parser::parse() -- main parse loop called";
 	TreeNode* resultNode = parseStatement();  // parse the next statement
 	if (resultNode == 0) {  // no statement was found
-		addError(i18n("Expected a command, instead got '%1'", currentToken->look()), *currentToken, 0);
+		addError(("Expected a command, instead got '%1'", currentToken->look()), *currentToken, 0);
 		return;
 	}
 
@@ -77,7 +74,7 @@ void Parser::nextToken()
 	}
 
 	if (currentToken->type() == Token::Error)
-		addError(i18n("Could not understand '%1'", currentToken->look()), *currentToken, 100);
+		addError(("Could not understand '%1'", currentToken->look()), *currentToken, 100);
 
 // 	QString out = QString("Parser::nextToken(): \"%5\" [%6] @ (%1,%2)-(%3,%4)")
 // 		.arg(currentToken->startRow())
@@ -112,27 +109,27 @@ bool Parser::skipToken(int expectedTokenType, Token& byToken)
 
 	switch (expectedTokenType) {
 		case Token::ArgumentSeparator:
-			addError(i18n("A comma was expected here..."), byToken, 0);
+			addError(("A comma was expected here..."), byToken, 0);
 			break;
 		case Token::EndOfInput:
-			addError(i18n("Did not expect '%1', instead expected the line to end after %2",
+			addError(("Did not expect '%1', instead expected the line to end after %2",
                     currentToken->look(),
                     byToken.look()),
                byToken, 0);
 			break;
 		case Token::Assign:
-			addError(i18n("Expected an assignment, '=', after the variable '%1'",
+			addError(("Expected an assignment, '=', after the variable '%1'",
                     byToken.look()), byToken, 0);
 			break;
 		case Token::ParenthesisClose:
-			addError(i18n("Did not expect '%1', instead expected a closing parenthesis, ')'",
+			addError(("Did not expect '%1', instead expected a closing parenthesis, ')'",
                     currentToken->look()), byToken, 0);
 			break;
 		case Token::To:
-			addError(i18n("Expected 'to' after 'for'"), byToken, 0);
+			addError(("Expected 'to' after 'for'"), byToken, 0);
 			break;
 		case Token::FunctionCall:
-			addError(i18n("Expected a name for a command after 'learn' command"), byToken, 0);
+			addError(("Expected a name for a command after 'learn' command"), byToken, 0);
 			break;
 	}
 
@@ -237,7 +234,7 @@ TreeNode* Parser::parseStatement()
 			//Token type is something else...
 			////qDebug() << "Parser::parseStatement(): I don't know this Token type.";
 			////qDebug() << "Look: " << currentToken->look() << " type: " << currentToken->type();
-			addError(i18n("You cannot put '%1' here.", currentToken->look()), *currentToken, 0);
+			addError(("You cannot put '%1' here.", currentToken->look()), *currentToken, 0);
 			finished = true;
 			return new TreeNode(currentToken);
 		}
@@ -273,7 +270,7 @@ TreeNode* Parser::parseFactor()
 				QString str = currentToken->look();
 				if (!currentToken->look().endsWith('\"')) {
 					str += "\"";
-					addError(i18n("Text string was not properly closed, expected a double quote, ' \" ', to close the string."), *currentToken, 0);
+					addError(("Text string was not properly closed, expected a double quote, ' \" ', to close the string."), *currentToken, 0);
 				}
 				node->value()->setString(str.mid(1, str.length() - 2));
 			}
@@ -333,12 +330,12 @@ TreeNode* Parser::parseFactor()
 // 			QString s = currentToken->look();
 // 			if ( s.isEmpty() || currentToken->type() == Token::EndOfInput )
 // 			{
-// // 				Error(currentToken, i18n("INTERNAL ERROR NR %1: please sent this Logo script to KTurtle developers").arg(1), 1020);
+// // 				Error(currentToken, ("INTERNAL ERROR NR %1: please sent this Logo script to KTurtle developers").arg(1), 1020);
 // 				// if this error occurs the see the Parser::Repeat for the good solution using 'preservedToken'
 // 			}
 // 			else
 // 			{
-// // 				Error(currentToken, i18n("Cannot understand '%1', expected an expression after the '%2' command").arg(s).arg(preservedToken->look()), 1020);
+// // 				Error(currentToken, ("Cannot understand '%1', expected an expression after the '%2' command").arg(s).arg(preservedToken->look()), 1020);
 // 			}
 // 			node = new TreeNode(currentToken);
 // 			nextToken();
@@ -621,7 +618,7 @@ TreeNode* Parser::parseFor() {
 //	} else if (currentToken->type() == Token::In) {
 //		// @TODO something for a for-in loop
 	} else {
-		addError(i18n("'for' was called wrongly"), *node->token(), 0);
+		addError(("'for' was called wrongly"), *node->token(), 0);
 		finished = true;  // abort after this error
 		return node;
 	}
@@ -691,7 +688,7 @@ TreeNode* Parser::parseLearn() {
 	if (currentToken->type() == Token::ScopeOpen) {
 		node->appendChild(parseScopeOpen());  // if followed by a scope
 	} else {
-		addError(i18n("Expected a scope after the 'learn' command"), *node->token(), 0);
+		addError(("Expected a scope after the 'learn' command"), *node->token(), 0);
 	}
 	return node;
 }

@@ -1,8 +1,0 @@
-<!DOCTYPE RCC>
-
-<RCC version="1.0">
-	<qresource>
-		<file>turtle.svg</file>
-		<file>turtle_grey.svg</file>
-	</qresource>
-</RCC>

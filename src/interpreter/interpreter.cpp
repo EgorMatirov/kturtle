@@ -18,7 +18,6 @@
 */
 
 #include "interpreter.h"
-#include "interpreteradaptor.h"
 
 #include <QtDebug>
 
@@ -35,12 +34,6 @@
 Interpreter::Interpreter(QObject* parent, bool testing)
 	: QObject(parent), m_testing(testing)
 {
-	if (testing) {
-		new InterpreterAdaptor(this);
-		QDBusConnection dbus = QDBusConnection::sessionBus();
-		dbus.registerObject("/Interpreter", this);
-	}
-
 	errorList  = new ErrorList();
 	tokenizer  = new Tokenizer();
 	parser     = new Parser(testing);
