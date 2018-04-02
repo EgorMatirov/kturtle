@@ -24,129 +24,82 @@
 #include <QDebug>
 #include <QCoreApplication>
 #include <QCommandLineParser>
-#include <QCommandLineOption>
 
 #include "interpreter/interpreter.h"  // for non gui mode
 #include "interpreter/echoer.h"
-#include "interpreter/tokenizer.h"
 
 
-static const char version[]   = "0.8.1 beta";
-static const char copyright[] = "(c) 2003-2009 Cies Breijs";
-static const char website[]   = "http://edu.kde.org/kturtle";
 const QString KTURTLE_MAGIC_1_0 = "kturtle-script-v1.0";
 
 
-int main(int argc, char* argv[])
-{
-	QCoreApplication app(argc, argv);
+int main(int argc, char *argv[]) {
+    QCoreApplication app(argc, argv);
 
-	QCommandLineParser parser;
-	parser.addVersionOption();
-	parser.addHelpOption();
+    QCommandLineParser parser;
+    parser.addVersionOption();
+    parser.addHelpOption();
 
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("i") << QLatin1String("input"), ("File or URL to open (in the GUI mode)"), QLatin1String("URL or file")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("d") << QLatin1String("dbus"), ("Starts KTurtle in D-Bus mode (without a GUI), good for automated unit test scripts")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("t") << QLatin1String("test"), ("Starts KTurtle in testing mode (without a GUI), directly runs the specified local file"), QLatin1String("file")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("l") << QLatin1String("lang"), ("Specifies the localization language by a language code, defaults to \"en_US\" (only works in testing mode)"), QLatin1String("code")));
-	parser.addOption(QCommandLineOption(QStringList() << QLatin1String("p") << QLatin1String("parse"), ("Translates turtle code to embeddable C++ example strings (for developers only)"), QLatin1String("file")));
+    parser.addOption(QCommandLineOption(QStringList() << QLatin1String("i") << QLatin1String("input"),
+                                        ("File or URL to open (in the GUI mode)"), QLatin1String("URL or file")));
+    parser.addOption(QCommandLineOption(QStringList() << QLatin1String("d") << QLatin1String("dbus"),
+                                        ("Starts KTurtle in D-Bus mode (without a GUI), good for automated unit test scripts")));
+    parser.addOption(QCommandLineOption(QStringList() << QLatin1String("t") << QLatin1String("test"),
+                                        ("Starts KTurtle in testing mode (without a GUI), directly runs the specified local file"),
+                                        QLatin1String("file")));
+    parser.addOption(QCommandLineOption(QStringList() << QLatin1String("l") << QLatin1String("lang"),
+                                        ("Specifies the localization language by a language code, defaults to \"en_US\" (only works in testing mode)"),
+                                        QLatin1String("code")));
+    parser.addOption(QCommandLineOption(QStringList() << QLatin1String("p") << QLatin1String("parse"),
+                                        ("Translates turtle code to embeddable C++ example strings (for developers only)"),
+                                        QLatin1String("file")));
 
-	parser.process(app);
+    parser.process(app);
 
-	if (parser.isSet("parse")) {
+    ///////////////// run without a gui /////////////////
+    QString fileString = parser.value("test");
+    QFile inputFile(fileString);
 
-		///////////////// run in example PARSING mode /////////////////
-		QFile inputFile(parser.value("parse"));
-		if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-			std::cout << "Could not open file: " << qPrintable(parser.value("parse")) << std::endl;
-			std::cout << "Exitting..." << std::endl;
-			return 1;
-		}
-		
-		Translator::instance()->setLanguage();
+    if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        std::cerr << "Could not open input file: " << qPrintable(parser.value("test")) << std::endl;
+        std::cerr << "Exitting..." << std::endl;
+        return 1;
+    }
 
-		Tokenizer tokenizer;
-		tokenizer.initialize(inputFile.readAll());
-		inputFile.close();
+    QTextStream in(&inputFile);
 
-		const QStringList defaultLooks(Translator::instance()->allDefaultLooks());
-		QString result;
-		Token* t;
-		while ((t = tokenizer.getToken())->type() != Token::EndOfInput) {
-			if (defaultLooks.contains(t->look()))
-				result.append(QString("@(%1)").arg(t->look()));
-			else
-				result.append(t->look());
-			if (t->type() == Token::EndOfLine) result.append('\n');
-		}
+    // check for our magic identifier
+    QString s;
+    s = in.readLine();
+    if (s == KTURTLE_MAGIC_1_0) {
+        s = "";
+    }
 
-		foreach (const QString &line, result.split('\n')) std::cout << qPrintable(QString("\"%1\"").arg(line)) << std::endl;
-		std::cout << std::endl;
+    Translator::instance()->setLanguage();
 
-	} else {
+    QString script = in.readAll();
+    QString firstLine = s + QString("\n");
+    script = firstLine + script;
 
-		///////////////// run without a gui /////////////////
-		std::cout << "KTurtle's interpreter in command line mode (version " << version << ")" << std::endl;
-		std::cout << copyright << std::endl << std::endl;
+    auto interpreter = new Interpreter(nullptr, true);  // set testing to true
+    interpreter->initialize(script);
 
-		QString fileString = parser.value("test");
-		QFile inputFile(fileString);
+    (new Echoer())->connectAllSlots(interpreter->getExecuter());
 
-		if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-			std::cout << "Could not open input file: " << qPrintable(parser.value("test")) << std::endl;
-			std::cout << "Exitting..." << std::endl;
-			return 1;
-		}
+    static const int MAX_ITERATION_STEPS = 2000;
+    int i;
+    for (i = 0; interpreter->state() != Interpreter::Finished && interpreter->state() != Interpreter::Aborted &&
+                interpreter->getErrorList()->isEmpty() && i < MAX_ITERATION_STEPS; i++)
+        interpreter->interpret();
 
-		QTextStream in(&inputFile);
+    if (!interpreter->getErrorList()->isEmpty()) {
+        std::cerr << "ERR> " << interpreter->getErrorStrings().join(", ").toStdString();
+        return 1;
+    }
 
-		// check for our magic identifier
-		QString s;
-		s = in.readLine();
-		if (s != KTURTLE_MAGIC_1_0) {
-			std::cout << "The file you try to open is not a valid KTurtle script, or is incompatible with this version of KTurtle.\n";
-			return 1;
-		}
+    if (i == MAX_ITERATION_STEPS) {
+        std::cerr << "ERR> Iterated more than " << MAX_ITERATION_STEPS << " steps. Execution terminated." << std::endl;
+        return 1;
+    }
 
-		if (parser.isSet("lang")) {
-			if (Translator::instance()->setLanguage(parser.value("lang"))) {
-				std::cout << "Set localization to: " << parser.value("lang").data() << std::endl;
-			} else {
-				std::cout << "Could not set localization to:" << parser.value("lang").data() << std::endl;
-				std::cout << "Exitting...\n";
-				return 1;
-			}
-		} else {
-			Translator::instance()->setLanguage();
-			std::cout << "Using the default (en_US) localization." << std::endl;
-		}
-
-		QString localizedScript;
-		localizedScript = Translator::instance()->localizeScript(in.readAll());
-
-		Interpreter* interpreter = new Interpreter(0, true);  // set testing to true
-		interpreter->initialize(localizedScript);
-
-		(new Echoer())->connectAllSlots(interpreter->getExecuter());
-
-		static const int MAX_ITERATION_STEPS = 2000;
-		int i;
-		for (i = 0;
-		     interpreter->state() != Interpreter::Finished &&
-		     interpreter->state() != Interpreter::Aborted  &&
-		     interpreter->getErrorList()->isEmpty() &&
-		     i < MAX_ITERATION_STEPS;
-		     i++)
-			interpreter->interpret();
-
-        if(!interpreter->getErrorList()->isEmpty()) {
-            std::cerr << "ERR> " << interpreter->getErrorStrings().join(", ").toStdString();
-			return 1;
-        }
-		if (i == MAX_ITERATION_STEPS)
-			std::cout << "ERR> Iterated more than " << MAX_ITERATION_STEPS << " steps... Execution terminated." << std::endl;
-
-	}
-
-	return 0;
+    return 0;
 }

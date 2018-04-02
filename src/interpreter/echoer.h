@@ -28,6 +28,7 @@
 #include <QDebug>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 
 
 const double DegToRad = M_PI / 180.0;
@@ -115,7 +116,7 @@ class Echoer : public QObject
 		void go(double arg0, double arg1) {
             if(!isPenUp)
             {
-                std::cout << std::fixed << "DRAW> " << x << " " << y << " " << arg0 << " " << arg1 << std::endl;
+                std::cout << std::fixed << std::setw(3) << x << " " << y << " " << arg0 << " " << arg1 << std::endl;
             }
             x = arg0; y = arg1;
         }
