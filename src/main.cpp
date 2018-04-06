@@ -80,6 +80,8 @@ int main(int argc, char *argv[]) {
     QString firstLine = s + QString("\n");
     script = firstLine + script;
 
+    script = Translator::instance()->localizeScript(script);
+
     auto interpreter = new Interpreter(nullptr, true);  // set testing to true
     interpreter->initialize(script);
 
