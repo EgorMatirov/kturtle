@@ -87,19 +87,12 @@ int main(int argc, char *argv[]) {
 
     (new Echoer())->connectAllSlots(interpreter->getExecuter());
 
-    static const int MAX_ITERATION_STEPS = 2000;
-    int i;
-    for (i = 0; interpreter->state() != Interpreter::Finished && interpreter->state() != Interpreter::Aborted &&
-                interpreter->getErrorList()->isEmpty() && i < MAX_ITERATION_STEPS; i++)
+    for (int i = 0; interpreter->state() != Interpreter::Finished && interpreter->state() != Interpreter::Aborted &&
+                interpreter->getErrorList()->isEmpty(); i++)
         interpreter->interpret();
 
     if (!interpreter->getErrorList()->isEmpty()) {
         std::cerr << "ERR> " << interpreter->getErrorStrings().join(", ").toStdString();
-        return 1;
-    }
-
-    if (i == MAX_ITERATION_STEPS) {
-        std::cerr << "ERR> Iterated more than " << MAX_ITERATION_STEPS << " steps. Execution terminated." << std::endl;
         return 1;
     }
 
